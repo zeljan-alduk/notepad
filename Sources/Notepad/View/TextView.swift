@@ -35,6 +35,8 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
 
     var onCaret: ((_ line: Int, _ col: Int) -> Void)?
     var onModifiedChange: (() -> Void)?
+    /// Files dropped onto the text area.
+    var onOpenFiles: (([URL]) -> Void)?
 
     // Word wrap: a flat list of visual rows. Empty/unused when wrap is off.
     private struct WrapRow { let start: Int; let end: Int }
@@ -61,7 +63,22 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         wantsLayer = true
         layer?.backgroundColor = NSColor.white.cgColor
         document.delegate = self
+        registerForDraggedTypes([.fileURL])
         updateFrameSize()
+    }
+
+    // MARK: - Drag & drop (open files)
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) ? .copy : []
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty else { return false }
+        onOpenFiles?(urls)
+        return true
     }
 
     required init?(coder: NSCoder) { fatalError() }

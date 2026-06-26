@@ -7,6 +7,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// share only the AppKit frameworks — a new window costs a few MB + its file.
     private var controllers: [EditorWindowController] = []
 
+    private let openRecentMenu = NSMenu(title: "Open Recent")
+    private let recentKey = "RecentFiles"
+    private let maxRecent = 10
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         installGlobalMenu()
 
@@ -77,6 +81,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls { open(url: url) }
     }
 
+    /// Files dropped onto a window.
+    func openDropped(_ urls: [URL]) {
+        for url in urls { open(url: url) }
+    }
+
+    // MARK: - Recent files
+
+    var recentFiles: [URL] {
+        (UserDefaults.standard.array(forKey: recentKey) as? [String] ?? [])
+            .map { URL(fileURLWithPath: $0) }
+    }
+
+    func noteRecent(_ url: URL) {
+        var paths = UserDefaults.standard.array(forKey: recentKey) as? [String] ?? []
+        paths.removeAll { $0 == url.path }
+        paths.insert(url.path, at: 0)
+        if paths.count > maxRecent { paths = Array(paths.prefix(maxRecent)) }
+        UserDefaults.standard.set(paths, forKey: recentKey)
+        rebuildRecentMenu()
+    }
+
+    /// Builds a fresh "Open Recent" submenu (for the in-window File menu).
+    func makeRecentMenu() -> NSMenu {
+        let menu = NSMenu(title: "Open Recent")
+        populateRecent(into: menu)
+        return menu
+    }
+
+    private func populateRecent(into menu: NSMenu) {
+        menu.removeAllItems()
+        for url in recentFiles {
+            let item = menu.addItem(withTitle: url.lastPathComponent,
+                                    action: #selector(openRecentItem(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = url
+        }
+        if !recentFiles.isEmpty { menu.addItem(.separator()) }
+        let clear = menu.addItem(withTitle: "Clear Menu", action: #selector(clearRecent(_:)), keyEquivalent: "")
+        clear.target = self
+    }
+
+    private func rebuildRecentMenu() { populateRecent(into: openRecentMenu) }
+
+    @objc private func openRecentItem(_ sender: NSMenuItem) {
+        if let url = sender.representedObject as? URL { open(url: url) }
+    }
+
+    @objc private func clearRecent(_ sender: Any?) {
+        UserDefaults.standard.removeObject(forKey: recentKey)
+        rebuildRecentMenu()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
@@ -102,11 +158,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         newItem.target = self
         let openItem = fileMenu.addItem(withTitle: "Open…", action: #selector(openDocument(_:)), keyEquivalent: "o")
         openItem.target = self
+        let recentItem = fileMenu.addItem(withTitle: "Open Recent", action: nil, keyEquivalent: "")
+        recentItem.submenu = openRecentMenu
+        rebuildRecentMenu()
         fileMenu.addItem(.separator())
         // nil target → routed to the key window's EditorWindowController.
         fileMenu.addItem(withTitle: "Save", action: #selector(EditorWindowController.saveDocument(_:)), keyEquivalent: "s")
         let saveAs = fileMenu.addItem(withTitle: "Save As…", action: #selector(EditorWindowController.saveDocumentAs(_:)), keyEquivalent: "s")
         saveAs.keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(.separator())
+        fileMenu.addItem(withTitle: "Print…", action: #selector(EditorWindowController.printDocument(_:)), keyEquivalent: "p")
         fileItem.submenu = fileMenu
 
         let editItem = NSMenuItem(); mainMenu.addItem(editItem)

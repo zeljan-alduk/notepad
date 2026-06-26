@@ -47,6 +47,12 @@ swift run Notepad /path/to/file # open a file directly
   (memmem search over the piece table), encoding + line-ending detection (BOM,
   CRLF/LF/CR; native ending on Return), Word Wrap (visual-row renderer, ≤50k
   lines), Font picker + Zoom.
-- **M3** Recent files, drag-drop, print, app icon, packaging/signing. Polish:
-  typing-run undo coalescing; precise caret on >20k-char single lines; word wrap
-  + UTF-16 editing for very large files.
+- **M3 ✅** Recent files (Open Recent menu, persisted), drag-drop open, Print
+  (streams pages from the piece table), app icon, and a packaged ad-hoc-signed
+  `Notepad.app` via `Scripts/bundle.sh`.
+
+### Remaining polish (future)
+- Typing-run undo coalescing (currently per-character)
+- Precise caret on single lines >20k chars (render cap)
+- Word wrap + native editing for UTF-16 and very large files
+- Developer-ID signing + notarization (currently ad-hoc signed for local use)

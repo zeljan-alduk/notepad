@@ -51,6 +51,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         }
         textView.onModifiedChange = { [weak self] in self?.updateTitle() }
         textView.onZoom = { [weak self] pct in self?.statusBar.setZoom(pct) }
+        textView.onOpenFiles = { [weak self] urls in self?.coordinator?.openDropped(urls) }
 
         content.onLayout = { [weak self] bounds in self?.layoutContent(in: bounds) }
         layoutContent(in: content.bounds)
@@ -172,8 +173,16 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
                 self.doc = doc
                 self.textView.setDocument(doc)
                 self.reflectDocument()
+                self.coordinator?.noteRecent(url)
             }
         }
+    }
+
+    @objc func printDocument(_ sender: Any?) {
+        let printView = PrintTextView(document: doc, baseFont: textView.currentBaseFont)
+        let op = NSPrintOperation(view: printView)
+        op.jobTitle = displayName
+        op.runModal(for: window!, delegate: nil, didRun: nil, contextInfo: nil)
     }
 
     // MARK: - Find / Replace / Go To
@@ -247,9 +256,13 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             add("New", #selector(AppDelegate.newDocument(_:)), "n", target: coordinator)
             add("Open...", #selector(AppDelegate.openDocument(_:)), "o", target: coordinator)
             add("New Window", #selector(AppDelegate.newDocument(_:)), target: coordinator)
+            let recent = menu.addItem(withTitle: "Open Recent", action: nil, keyEquivalent: "")
+            recent.submenu = coordinator?.makeRecentMenu()
             menu.addItem(.separator())
             add("Save", #selector(saveDocument(_:)), "s", target: self)
             add("Save As...", #selector(saveDocumentAs(_:)), target: self)
+            menu.addItem(.separator())
+            add("Print...", #selector(printDocument(_:)), "p", target: self)
             menu.addItem(.separator())
             add("Exit", #selector(NSApplication.terminate(_:)), target: NSApp)
         case "Edit":
