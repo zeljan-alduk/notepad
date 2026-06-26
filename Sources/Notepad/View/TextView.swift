@@ -439,6 +439,63 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         }
     }
 
+    // MARK: - Find / Replace / Go To
+
+    var selectionText: String { pieceTable.string(in: selLow..<selHigh) }
+
+    @discardableResult
+    func findNext(_ needle: String, caseSensitive: Bool, forward: Bool) -> Bool {
+        let bytes = Array(needle.utf8)
+        guard !bytes.isEmpty else { return false }
+        var range: Range<Int>?
+        if forward {
+            range = pieceTable.nextMatch(of: bytes, from: selHigh, caseSensitive: caseSensitive)
+                 ?? pieceTable.nextMatch(of: bytes, from: 0, caseSensitive: caseSensitive)   // wrap
+        } else {
+            range = pieceTable.prevMatch(of: bytes, before: selLow, caseSensitive: caseSensitive)
+                 ?? pieceTable.prevMatch(of: bytes, before: pieceTable.byteCount, caseSensitive: caseSensitive)
+        }
+        guard let r = range else { return false }
+        setSelection(anchor: r.lowerBound, head: r.upperBound)
+        desiredX = nil
+        return true
+    }
+
+    /// If the current selection is the search term, replace it; then find next.
+    @discardableResult
+    func replaceThenFind(_ needle: String, with replacement: String, caseSensitive: Bool) -> Bool {
+        let sel = selectionText
+        let isMatch = caseSensitive ? (sel == needle)
+                                    : (sel.lowercased() == needle.lowercased())
+        if hasSelection, isMatch {
+            document.replace(selLow..<selHigh, with: replacement)
+        }
+        return findNext(needle, caseSensitive: caseSensitive, forward: true)
+    }
+
+    func replaceAll(_ needle: String, with replacement: String, caseSensitive: Bool) -> Int {
+        let bytes = Array(needle.utf8)
+        guard !bytes.isEmpty else { return 0 }
+        let replBytes = replacement.utf8.count
+        document.undoManager.beginUndoGrouping()
+        var count = 0
+        var from = 0
+        while let r = pieceTable.nextMatch(of: bytes, from: from, caseSensitive: caseSensitive) {
+            document.replace(r, with: replacement)
+            count += 1
+            from = r.lowerBound + replBytes   // continue past the inserted text
+        }
+        document.undoManager.endUndoGrouping()
+        return count
+    }
+
+    func goToLine(_ line1Based: Int) {
+        let line = max(0, min(pieceTable.lineCount - 1, line1Based - 1))
+        let off = pieceTable.lineStart(line)
+        setSelection(anchor: off, head: off)
+        desiredX = nil
+    }
+
     // MARK: - Caret blink
 
     private func startBlink() {

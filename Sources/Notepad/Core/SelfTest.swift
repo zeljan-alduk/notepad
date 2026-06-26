@@ -81,8 +81,35 @@ enum SelfTest {
         }
         check("final")
 
+        // --- search correctness vs naive reference ---
+        func refFind(_ needle: [UInt8], _ from: Int) -> Int? {
+            guard !needle.isEmpty, from + needle.count <= ref.count else { return nil }
+            var i = from
+            while i + needle.count <= ref.count {
+                if Array(ref[i..<i + needle.count]) == needle { return i }
+                i += 1
+            }
+            return nil
+        }
+        let needles: [[UInt8]] = [Array("z".utf8), Array("xy".utf8),
+                                  Array("\n".utf8), Array("01".utf8), Array("zz0".utf8)]
+        for nd in needles {
+            var from = 0
+            while from <= ref.count {
+                let got = pt.nextMatch(of: nd, from: from, caseSensitive: true)?.lowerBound
+                let want = refFind(nd, from)
+                if got != want {
+                    failures += 1
+                    print("FAIL [search] needle \(nd) from \(from): got \(String(describing: got)) want \(String(describing: want))")
+                    break
+                }
+                guard let w = want else { break }
+                from = w + 1
+            }
+        }
+
         if failures == 0 {
-            print("SELFTEST PASS — content + line geometry verified over 4000 random edits")
+            print("SELFTEST PASS — content + line geometry + search verified over 4000 random edits")
             exit(0)
         } else {
             print("SELFTEST FAILED with \(failures) failure(s)")

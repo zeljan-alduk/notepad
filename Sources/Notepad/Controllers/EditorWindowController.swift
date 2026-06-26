@@ -168,6 +168,43 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
+    // MARK: - Find / Replace / Go To
+
+    private lazy var findPanel = FindPanelController()
+
+    @objc func performFindPanel(_ sender: Any?) {
+        findPanel.present(for: textView, focusReplace: false)
+    }
+    @objc func performReplacePanel(_ sender: Any?) {
+        findPanel.present(for: textView, focusReplace: true)
+    }
+    @objc func findNextCommand(_ sender: Any?) { repeatFind(forward: true) }
+    @objc func findPreviousCommand(_ sender: Any?) { repeatFind(forward: false) }
+
+    private func repeatFind(forward: Bool) {
+        // Use the panel's term, or the current selection if the panel is unused.
+        var term = findPanel.lastTerm
+        if term.isEmpty { term = textView.selectionText }
+        guard !term.isEmpty else { NSSound.beep(); return }
+        if !textView.findNext(term, caseSensitive: findPanel.caseSensitive, forward: forward) {
+            NSSound.beep()
+        }
+    }
+
+    @objc func performGoToLine(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.messageText = "Go to line:"
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Go")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        if alert.runModal() == .alertFirstButtonReturn, let n = Int(field.stringValue) {
+            textView.goToLine(n)
+            window?.makeFirstResponder(textView)
+        }
+    }
+
     /// Whether this window is a pristine untitled buffer (reused instead of
     /// spawning a second empty window when opening the first file).
     var isPristine: Bool { doc.fileURL == nil && !doc.isModified }
@@ -199,9 +236,10 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             add("Copy", #selector(NSText.copy(_:)), "c")
             add("Paste", #selector(NSText.paste(_:)), "v")
             menu.addItem(.separator())
-            add("Find...", nil)      // M2
-            add("Replace...", nil)   // M2
-            add("Go To...", nil)     // M2
+            add("Find...", #selector(performFindPanel(_:)), "f", target: self)
+            add("Find Next", #selector(findNextCommand(_:)), "g", target: self)
+            add("Replace...", #selector(performReplacePanel(_:)), target: self)
+            add("Go To...", #selector(performGoToLine(_:)), "l", target: self)
             menu.addItem(.separator())
             add("Select All", #selector(NSText.selectAll(_:)), "a")
         case "Format":

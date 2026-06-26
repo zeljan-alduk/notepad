@@ -177,6 +177,63 @@ final class PieceTable {
         return end
     }
 
+    // MARK: - Search
+
+    @inline(__always)
+    private func asciiLower(_ b: UInt8) -> UInt8 { (b >= 65 && b <= 90) ? b + 32 : b }
+
+    /// First match of `needle` at or after `from`, or nil. Scans the document in
+    /// overlapping ~1 MB windows via `memmem`, so it works on huge files without
+    /// materializing them. Case-insensitive folding is ASCII-only.
+    func nextMatch(of needle: [UInt8], from: Int, caseSensitive: Bool) -> Range<Int>? {
+        guard !needle.isEmpty else { return nil }
+        let m = needle.count
+        let n = byteCount
+        guard from <= n - m else { return nil }
+
+        let pat = caseSensitive ? needle : needle.map(asciiLower)
+        let chunk = max(1 << 20, m)
+        var buf: [UInt8] = []
+        var windowStart = max(0, from)
+
+        while windowStart <= n - m {
+            let end = min(n, windowStart + chunk)
+            buf.removeAll(keepingCapacity: true)
+            appendBytes(in: windowStart..<end, to: &buf)
+            if !caseSensitive { for i in buf.indices { buf[i] = asciiLower(buf[i]) } }
+
+            if let rel = memmemIndex(haystack: buf, needle: pat) {
+                return (windowStart + rel)..<(windowStart + rel + m)
+            }
+            if end == n { break }
+            windowStart = end - (m - 1)   // overlap so straddling matches aren't missed
+        }
+        return nil
+    }
+
+    /// Last match strictly before `before`, or nil.
+    func prevMatch(of needle: [UInt8], before: Int, caseSensitive: Bool) -> Range<Int>? {
+        guard !needle.isEmpty else { return nil }
+        var last: Range<Int>? = nil
+        var from = 0
+        while let r = nextMatch(of: needle, from: from, caseSensitive: caseSensitive),
+              r.lowerBound < before {
+            last = r
+            from = r.lowerBound + 1
+        }
+        return last
+    }
+
+    private func memmemIndex(haystack: [UInt8], needle: [UInt8]) -> Int? {
+        haystack.withUnsafeBytes { h in
+            needle.withUnsafeBytes { nd -> Int? in
+                guard let hb = h.baseAddress, let nb = nd.baseAddress,
+                      let found = memmem(hb, h.count, nb, nd.count) else { return nil }
+                return hb.distance(to: found)
+            }
+        }
+    }
+
     /// Streams the whole document to a file descriptor, piece by piece. Original
     /// slices are written straight from the mmap and add slices from the add
     /// buffer, so nothing is copied into a big intermediate buffer — saving a

@@ -120,6 +120,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         editMenu.addItem(.separator())
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editMenu.addItem(.separator())
+        // nil target → key window's EditorWindowController (responder chain).
+        editMenu.addItem(withTitle: "Find…", action: #selector(EditorWindowController.performFindPanel(_:)), keyEquivalent: "f")
+        editMenu.addItem(withTitle: "Find Next", action: #selector(EditorWindowController.findNextCommand(_:)), keyEquivalent: "g")
+        let findPrev = editMenu.addItem(withTitle: "Find Previous", action: #selector(EditorWindowController.findPreviousCommand(_:)), keyEquivalent: "g")
+        findPrev.keyEquivalentModifierMask = [.command, .shift]
+        let replace = editMenu.addItem(withTitle: "Replace…", action: #selector(EditorWindowController.performReplacePanel(_:)), keyEquivalent: "f")
+        replace.keyEquivalentModifierMask = [.command, .option]
+        editMenu.addItem(withTitle: "Go to Line…", action: #selector(EditorWindowController.performGoToLine(_:)), keyEquivalent: "l")
         editItem.submenu = editMenu
 
         NSApp.mainMenu = mainMenu
