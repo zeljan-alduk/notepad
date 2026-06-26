@@ -100,6 +100,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
 
     override func becomeFirstResponder() -> Bool { startBlink(); return super.becomeFirstResponder() }
     override func resignFirstResponder() -> Bool {
+        document.breakUndoCoalescing()
         blinkTimer?.invalidate(); caretVisible = false; needsDisplay = true
         return super.resignFirstResponder()
     }
@@ -298,6 +299,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
     // MARK: - Caret / selection movement
 
     private func setSelection(anchor a: Int, head h: Int) {
+        document.breakUndoCoalescing()   // any caret move ends a typing run
         let n = pieceTable.byteCount
         anchor = max(0, min(n, a))
         head = max(0, min(n, h))
@@ -362,8 +364,8 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
 
     // MARK: - Editing
 
-    private func replaceSelection(with text: String) {
-        document.replace(selLow..<selHigh, with: text)
+    private func replaceSelection(with text: String, coalesce: Bool = false) {
+        document.replace(selLow..<selHigh, with: text, coalesce: coalesce)
     }
 
     func document(_ doc: TextDocument, didEditPlacingCaretAt caret: Int) {
@@ -389,7 +391,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
     func insertText(_ string: Any, replacementRange: NSRange) {
         let text = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
         guard !text.isEmpty else { return }
-        replaceSelection(with: text)
+        replaceSelection(with: text, coalesce: true)   // typed runs fold into one undo
     }
 
     override func doCommand(by selector: Selector) {
@@ -483,15 +485,21 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         guard let text = NSPasteboard.general.string(forType: .string) else { return }
         replaceSelection(with: text)
     }
-    @objc func undo(_ sender: Any?) { document.undoManager.undo() }
-    @objc func redo(_ sender: Any?) { document.undoManager.redo() }
+    @objc func undo(_ sender: Any?) {
+        document.breakUndoCoalescing()   // close any open typing run first
+        document.undoManager.undo()
+    }
+    @objc func redo(_ sender: Any?) {
+        document.breakUndoCoalescing()
+        document.undoManager.redo()
+    }
 
     func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
         switch item.action {
         case #selector(copy(_:)), #selector(cut(_:)): return hasSelection
         case #selector(paste(_:)): return NSPasteboard.general.string(forType: .string) != nil
-        case #selector(undo(_:)): return document.undoManager.canUndo
-        case #selector(redo(_:)): return document.undoManager.canRedo
+        case #selector(undo(_:)): return document.canUndo
+        case #selector(redo(_:)): return document.canRedo
         default: return true
         }
     }
@@ -547,6 +555,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         let bytes = Array(needle.utf8)
         guard !bytes.isEmpty else { return 0 }
         let replBytes = replacement.utf8.count
+        document.breakUndoCoalescing()   // close any typing run before our group
         document.undoManager.beginUndoGrouping()
         var count = 0, from = 0
         while let r = pieceTable.nextMatch(of: bytes, from: from, caseSensitive: caseSensitive) {

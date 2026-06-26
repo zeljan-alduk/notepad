@@ -38,6 +38,11 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.autohidesScrollers = false
+        // Force always-visible (legacy) scrollers like Windows, instead of the
+        // macOS overlay style that fades out when idle.
+        scrollView.scrollerStyle = .legacy
+        scrollView.verticalScroller?.scrollerStyle = .legacy
+        scrollView.horizontalScroller?.scrollerStyle = .legacy
         scrollView.borderType = .noBorder
         scrollView.drawsBackground = true
         scrollView.backgroundColor = .white
@@ -290,7 +295,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             add("Zoom Out", #selector(TextView.zoomOut(_:)), "-")
             add("Restore Default Zoom", #selector(TextView.resetZoom(_:)), "0")
         case "Help":
-            menu.addItem(withTitle: "About Notepad", action: nil, keyEquivalent: "")
+            add("About Notepad", #selector(AppDelegate.showAbout(_:)), target: coordinator)
         default:
             break
         }

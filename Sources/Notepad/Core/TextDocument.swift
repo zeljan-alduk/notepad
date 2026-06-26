@@ -35,6 +35,10 @@ final class TextDocument {
         self.format = fmt
         self.pieceTable = PieceTable(original: file, index: index, contentStart: fmt.contentStart)
 
+        // We manage undo grouping ourselves so a run of typed characters folds
+        // into a single undo step (see replace(_:with:coalesce:)).
+        undoManager.groupsByEvent = false
+
         // As the background scan discovers newlines, keep the (still unedited)
         // original piece's line count live, mirroring M0's growing document.
         index.onProgress = { [weak self] in
@@ -54,9 +58,51 @@ final class TextDocument {
     var byteCount: Int { pieceTable.byteCount }
     var lineCount: Int { pieceTable.lineCount }
 
+    // Open typing run, if any, for undo coalescing.
+    private var typingGroupOpen = false
+    private var typingRunEnd = -1
+
+    /// An open typing run isn't undoable until closed, but the user can still
+    /// invoke Undo — so the menu item must stay enabled.
+    var canUndo: Bool { undoManager.canUndo || typingGroupOpen }
+    var canRedo: Bool { undoManager.canRedo }
+
+    /// Ends the current typing run, so the next typed character starts a fresh
+    /// undo step. Call on caret moves, clicks, focus loss, save, etc.
+    func breakUndoCoalescing() {
+        if typingGroupOpen { undoManager.endUndoGrouping(); typingGroupOpen = false }
+        typingRunEnd = -1
+    }
+
     /// Replaces document bytes in `range` with `text`. Registers the inverse on
-    /// the undo stack and notifies the delegate where the caret should go.
-    func replace(_ range: Range<Int>, with text: String) {
+    /// the undo stack and notifies the delegate where the caret should go. When
+    /// `coalesce` is true (plain typing), a contiguous run folds into one undo.
+    func replace(_ range: Range<Int>, with text: String, coalesce: Bool = false) {
+        let busy = undoManager.isUndoing || undoManager.isRedoing
+        let typing = coalesce && !busy && range.isEmpty
+
+        if typing, typingGroupOpen, range.lowerBound == typingRunEnd {
+            applyEdit(range, text)                       // continue the open run
+            typingRunEnd = range.lowerBound + text.utf8.count
+            return
+        }
+
+        breakUndoCoalescing()
+        if typing {
+            undoManager.beginUndoGrouping(); typingGroupOpen = true
+            applyEdit(range, text)
+            typingRunEnd = range.lowerBound + text.utf8.count
+        } else if busy {
+            // During undo/redo NSUndoManager owns the grouping.
+            applyEdit(range, text)
+        } else {
+            undoManager.beginUndoGrouping()
+            applyEdit(range, text)
+            undoManager.endUndoGrouping()
+        }
+    }
+
+    private func applyEdit(_ range: Range<Int>, _ text: String) {
         // Before the first edit, finalize the index so every original-piece line
         // count is authoritative even if the background scan hadn't finished.
         if !index.isFinished {
@@ -65,13 +111,11 @@ final class TextDocument {
         }
         let removed = pieceTable.delete(range)
         if !text.isEmpty { pieceTable.insert(text, at: range.lowerBound) }
-        let insertedLen = text.utf8.count
-        let newRange = range.lowerBound ..< (range.lowerBound + insertedLen)
+        let newRange = range.lowerBound ..< (range.lowerBound + text.utf8.count)
 
         undoManager.registerUndo(withTarget: self) { doc in
             doc.replace(newRange, with: removed)
         }
-
         isModified = true
         delegate?.document(self, didEditPlacingCaretAt: newRange.upperBound)
     }

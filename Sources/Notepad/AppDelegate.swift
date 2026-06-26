@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// share only the AppKit frameworks — a new window costs a few MB + its file.
     private var controllers: [EditorWindowController] = []
 
+    private lazy var aboutController = AboutWindowController()
     private let openRecentMenu = NSMenu(title: "Open Recent")
     private let recentKey = "RecentFiles"
     private let maxRecent = 10
@@ -86,6 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls { open(url: url) }
     }
 
+    @objc func showAbout(_ sender: Any?) { aboutController.present() }
+
     // MARK: - Recent files
 
     var recentFiles: [URL] {
@@ -145,6 +148,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appItem = NSMenuItem()
         mainMenu.addItem(appItem)
         let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Notepad", action: #selector(showAbout(_:)), keyEquivalent: "").target = self
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide Notepad", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Notepad", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
