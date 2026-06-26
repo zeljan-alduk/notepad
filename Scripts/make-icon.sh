@@ -67,5 +67,6 @@ for s in 16 32 128 256 512; do
 done
 mkdir -p Resources
 iconutil -c icns "$ICONSET" -o Resources/AppIcon.icns
-echo "Wrote Resources/AppIcon.icns"
+cp Resources/AppIcon.icns Sources/Notepad/AppIcon.icns   # bundled as a resource too
+echo "Wrote Resources/AppIcon.icns (+ Sources/Notepad/AppIcon.icns)"
 rm -rf "$WORK"
