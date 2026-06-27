@@ -2,7 +2,7 @@ import AppKit
 
 /// A Windows-style in-window menu strip: File / Edit / Format / View / Help.
 /// On Windows the menu lives inside the window (not a global bar), which is the
-/// single most recognizable part of the Notepad look.
+/// single most recognizable part of the FlashPad look.
 final class WinMenuBar: NSView {
     private let titles = ["File", "Edit", "Format", "View", "Help"]
     private var buttons: [NSButton] = []

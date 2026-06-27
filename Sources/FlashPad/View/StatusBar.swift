@@ -1,6 +1,6 @@
 import AppKit
 
-/// The Win10 (1809+) Notepad status bar: position on the left, then zoom,
+/// The Win10 (1809+) FlashPad status bar: position on the left, then zoom,
 /// line-ending style, and encoding on the right.
 final class StatusBar: NSView {
     private let position = NSTextField(labelWithString: "Ln 1, Col 1")

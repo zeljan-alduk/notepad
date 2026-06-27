@@ -1,5 +1,5 @@
 #!/bin/bash
-# Renders a Notepad-style app icon and packs it into Resources/AppIcon.icns.
+# Renders a FlashPad-style app icon and packs it into Resources/AppIcon.icns.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -67,6 +67,6 @@ for s in 16 32 128 256 512; do
 done
 mkdir -p Resources
 iconutil -c icns "$ICONSET" -o Resources/AppIcon.icns
-cp Resources/AppIcon.icns Sources/Notepad/AppIcon.icns   # bundled as a resource too
-echo "Wrote Resources/AppIcon.icns (+ Sources/Notepad/AppIcon.icns)"
+cp Resources/AppIcon.icns Sources/FlashPad/AppIcon.icns   # bundled as a resource too
+echo "Wrote Resources/AppIcon.icns (+ Sources/FlashPad/AppIcon.icns)"
 rm -rf "$WORK"

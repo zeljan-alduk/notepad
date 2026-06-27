@@ -4,14 +4,14 @@ import AppKit
 /// to the GitHub project.
 final class AboutWindowController: NSWindowController {
     static let coffeeURL = URL(string: "https://buymeacoffee.com/6txpkxt5kp")!
-    static let githubURL = URL(string: "https://github.com/zeljan-alduk/notepad")!
+    static let githubURL = URL(string: "https://github.com/zeljan-alduk/flashpad")!
 
     init() {
         let w: CGFloat = 460, h: CGFloat = 380
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: w, height: h),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "About Notepad"
+        window.title = "About FlashPad"
         window.center()
         window.isReleasedWhenClosed = false
         super.init(window: window)
@@ -27,7 +27,7 @@ final class AboutWindowController: NSWindowController {
         icon.imageScaling = .scaleProportionallyUpOrDown
         content.addSubview(icon)
 
-        let title = NSTextField(labelWithString: "Notepad")
+        let title = NSTextField(labelWithString: "FlashPad")
         title.font = .systemFont(ofSize: 22, weight: .semibold)
         title.alignment = .center
         title.frame = NSRect(x: 0, y: h - 158, width: w, height: 28)
@@ -41,7 +41,7 @@ final class AboutWindowController: NSWindowController {
         content.addSubview(version)
 
         let blurb = NSTextField(wrappingLabelWithString:
-            "A fast, native macOS clone of Windows 10 Notepad — built to open and scroll multi-gigabyte files instantly with a small footprint.")
+            "A fast, native macOS clone of Windows 10 FlashPad — built to open and scroll multi-gigabyte files instantly with a small footprint.")
         blurb.font = .systemFont(ofSize: 12)
         blurb.textColor = .secondaryLabelColor
         blurb.alignment = .center

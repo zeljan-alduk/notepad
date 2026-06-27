@@ -1,7 +1,8 @@
-# Notepad (macOS)
+# FlashPad (macOS)
 
-A native macOS clone of Windows 10 Notepad — small, fast to launch, low memory,
-and built to open **multi-gigabyte** text files and scroll them instantly.
+A fast, native macOS text editor in the spirit of the classic Windows Notepad —
+small, quick to launch, low memory, and built to open **multi-gigabyte** text
+files and scroll them instantly.
 
 ## Why it's fast on huge files
 
@@ -17,7 +18,7 @@ It does **not** use `NSTextView` (which loads the whole file into memory). Inste
 - **Piece table** — edits go to a separate buffer; the document is a list of
   slices into either the mmap'd original or an "add" buffer, so editing a 10 GB
   file costs memory proportional to the edits, not the file. Fuzz-tested against
-  a reference model over thousands of random edits (`Notepad --selftest`).
+  a reference model over thousands of random edits (`FlashPad --selftest`).
 - **pread indexing** — the newline scan reads 4 MB chunks via `pread` instead of
   walking the mmap, so the whole file never enters our resident set. A 1.5 GB
   file sits at **~100 MB RSS** after open.
@@ -31,8 +32,8 @@ white text area, and the Win10 status bar (`Ln/Col`, zoom, line ending, encoding
 
 ```sh
 swift run                       # debug build + launch
-swift run Notepad /path/to/file # open a file directly
-./Scripts/bundle.sh             # produce build/Notepad.app
+swift run FlashPad /path/to/file # open a file directly
+./Scripts/bundle.sh             # produce build/FlashPad.app
 ```
 
 ## Roadmap
@@ -49,7 +50,7 @@ swift run Notepad /path/to/file # open a file directly
   lines), Font picker + Zoom.
 - **M3 ✅** Recent files (Open Recent menu, persisted), drag-drop open, Print
   (streams pages from the piece table), app icon, and a packaged ad-hoc-signed
-  `Notepad.app` via `Scripts/bundle.sh`.
+  `FlashPad.app` via `Scripts/bundle.sh`.
 
 ### Remaining polish (future)
 - Typing-run undo coalescing (currently per-character)

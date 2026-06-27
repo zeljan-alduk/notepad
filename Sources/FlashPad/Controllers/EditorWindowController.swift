@@ -1,7 +1,7 @@
 import AppKit
 
-/// Owns one Notepad window: the in-window menu bar, the scrollable text view,
-/// and the status bar, laid out top-to-bottom like Windows 10 Notepad.
+/// Owns one FlashPad window: the in-window menu bar, the scrollable text view,
+/// and the status bar, laid out top-to-bottom like Windows 10 FlashPad.
 final class EditorWindowController: NSWindowController, NSWindowDelegate {
     weak var coordinator: AppDelegate?
 
@@ -20,9 +20,9 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
-        window.title = "Untitled - Notepad"
+        window.title = "Untitled - FlashPad"
         window.center()
-        window.setFrameAutosaveName("NotepadMain")
+        window.setFrameAutosaveName("FlashPadMain")
 
         self.doc = TextDocument.empty()
         self.textView = TextView(document: doc)
@@ -69,7 +69,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         coordinator?.controllerDidClose(self)
     }
 
-    /// Prompt to save unsaved changes before closing (Notepad behaviour).
+    /// Prompt to save unsaved changes before closing (FlashPad behaviour).
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard doc.isModified else { return true }
         let alert = NSAlert()
@@ -155,7 +155,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
 
     private func updateTitle() {
         let mark = doc.isModified ? "*" : ""
-        window?.title = "\(mark)\(displayName) - Notepad"
+        window?.title = "\(mark)\(displayName) - FlashPad"
     }
 
     /// Reflect the current document's format in the status bar + title.
@@ -186,7 +186,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         // Detect encoding (transcoding non-UTF-8 to a temp UTF-8 file) and index
         // on a background thread, so the line model is correct before the view
         // ever draws and the UI stays responsive on huge files.
-        window?.title = "Opening… - Notepad"
+        window?.title = "Opening… - FlashPad"
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let opened = prepareForReading(url) else {
                 DispatchQueue.main.async { NSSound.beep(); self?.updateTitle() }
@@ -346,7 +346,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             sb.target = self
             sb.state = statusBarVisible ? .on : .off
         case "Help":
-            add("About Notepad", #selector(AppDelegate.showAbout(_:)), target: coordinator)
+            add("About FlashPad", #selector(AppDelegate.showAbout(_:)), target: coordinator)
         default:
             break
         }

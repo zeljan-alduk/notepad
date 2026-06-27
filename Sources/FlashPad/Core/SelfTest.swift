@@ -2,7 +2,7 @@ import Foundation
 
 /// Differential fuzz test: apply identical random edits to the PieceTable and to
 /// a trivially-correct `[UInt8]` reference, then assert the content and every
-/// line-geometry query agree. Run via `Notepad --selftest`.
+/// line-geometry query agree. Run via `FlashPad --selftest`.
 enum SelfTest {
     // Deterministic LCG so failures reproduce.
     private struct RNG {

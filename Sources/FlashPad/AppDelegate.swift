@@ -150,18 +150,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Minimal macOS global menu — only what the OS needs (Quit/Hide). The
-    /// visible Notepad menu lives inside the window, Windows-style.
+    /// visible FlashPad menu lives inside the window, Windows-style.
     private func installGlobalMenu() {
         let mainMenu = NSMenu()
 
         let appItem = NSMenuItem()
         mainMenu.addItem(appItem)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About Notepad", action: #selector(showAbout(_:)), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: "About FlashPad", action: #selector(showAbout(_:)), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Hide Notepad", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Hide FlashPad", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit Notepad", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit FlashPad", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
 
         // File + Edit carry the key equivalents; macOS dispatches these to the

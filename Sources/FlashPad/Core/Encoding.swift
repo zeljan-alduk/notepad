@@ -109,5 +109,5 @@ func detectLineEnding(_ file: MappedFile, from start: Int) -> LineEndingInfo {
         }
         i += 1
     }
-    return .crlf   // default for new/empty/no-newline files, like Notepad
+    return .crlf   // default for new/empty/no-newline files, like FlashPad
 }

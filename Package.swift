@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "Notepad",
+    name: "FlashPad",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "Notepad",
-            path: "Sources/Notepad",
+            name: "FlashPad",
+            path: "Sources/FlashPad",
             resources: [.copy("Fonts"), .copy("AppIcon.icns")],
             swiftSettings: [
                 .swiftLanguageMode(.v5),
