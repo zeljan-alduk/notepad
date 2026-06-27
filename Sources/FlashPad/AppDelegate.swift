@@ -73,11 +73,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func open(url: URL) {
+    private func open(url: URL, scopedURL: URL? = nil) {
         if let front = frontController(), front.isPristine {
-            front.open(url: url)
+            front.open(url: url, scopedURL: scopedURL)
         } else {
-            newWindow().open(url: url)
+            newWindow().open(url: url, scopedURL: scopedURL)
         }
     }
 
@@ -98,20 +98,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showAbout(_ sender: Any?) { aboutController.present() }
 
-    // MARK: - Recent files
+    // MARK: - Recent files (security-scoped bookmarks, so they reopen under sandbox)
 
-    var recentFiles: [URL] {
-        (UserDefaults.standard.array(forKey: recentKey) as? [String] ?? [])
-            .map { URL(fileURLWithPath: $0) }
-    }
+    private var recentBookmarks: [String] { UserDefaults.standard.stringArray(forKey: recentKey) ?? [] }
 
     func noteRecent(_ url: URL) {
-        var paths = UserDefaults.standard.array(forKey: recentKey) as? [String] ?? []
-        paths.removeAll { $0 == url.path }
-        paths.insert(url.path, at: 0)
-        if paths.count > maxRecent { paths = Array(paths.prefix(maxRecent)) }
-        UserDefaults.standard.set(paths, forKey: recentKey)
+        guard let data = try? url.bookmarkData(options: .withSecurityScope) else { return }
+        var arr = recentBookmarks
+        arr.removeAll { resolveBookmark($0)?.url.path == url.path }   // dedupe
+        arr.insert(data.base64EncodedString(), at: 0)
+        if arr.count > maxRecent { arr = Array(arr.prefix(maxRecent)) }
+        UserDefaults.standard.set(arr, forKey: recentKey)
         rebuildRecentMenu()
+    }
+
+    private func resolveBookmark(_ b64: String) -> (url: URL, stale: Bool)? {
+        guard let data = Data(base64Encoded: b64) else { return nil }
+        var stale = false
+        guard let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope,
+                                 relativeTo: nil, bookmarkDataIsStale: &stale) else { return nil }
+        return (url, stale)
     }
 
     /// Builds a fresh "Open Recent" submenu (for the in-window File menu).
@@ -123,13 +129,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func populateRecent(into menu: NSMenu) {
         menu.removeAllItems()
-        for url in recentFiles {
+        let bookmarks = recentBookmarks
+        for b64 in bookmarks {
+            guard let (url, _) = resolveBookmark(b64) else { continue }
             let item = menu.addItem(withTitle: url.lastPathComponent,
                                     action: #selector(openRecentItem(_:)), keyEquivalent: "")
             item.target = self
-            item.representedObject = url
+            item.representedObject = b64
         }
-        if !recentFiles.isEmpty { menu.addItem(.separator()) }
+        if !bookmarks.isEmpty { menu.addItem(.separator()) }
         let clear = menu.addItem(withTitle: "Clear Menu", action: #selector(clearRecent(_:)), keyEquivalent: "")
         clear.target = self
     }
@@ -137,7 +145,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func rebuildRecentMenu() { populateRecent(into: openRecentMenu) }
 
     @objc private func openRecentItem(_ sender: NSMenuItem) {
-        if let url = sender.representedObject as? URL { open(url: url) }
+        guard let b64 = sender.representedObject as? String,
+              let (url, _) = resolveBookmark(b64) else { NSSound.beep(); return }
+        // Start security-scoped access; the document stops it when it closes.
+        let scoped = url.startAccessingSecurityScopedResource() ? url : nil
+        open(url: url, scopedURL: scoped)
     }
 
     @objc private func clearRecent(_ sender: Any?) {

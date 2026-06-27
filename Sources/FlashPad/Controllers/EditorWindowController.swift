@@ -182,13 +182,14 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
 
     // MARK: - File opening
 
-    func open(url: URL) {
+    func open(url: URL, scopedURL: URL? = nil) {
         // Detect encoding (transcoding non-UTF-8 to a temp UTF-8 file) and index
         // on a background thread, so the line model is correct before the view
         // ever draws and the UI stays responsive on huge files.
         window?.title = "Opening… - FlashPad"
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let opened = prepareForReading(url) else {
+                scopedURL?.stopAccessingSecurityScopedResource()
                 DispatchQueue.main.async { NSSound.beep(); self?.updateTitle() }
                 return
             }
@@ -196,10 +197,11 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             idx.buildSynchronously()
             let lineEnding = detectLineEnding(opened.mapped, from: opened.contentStart)
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self else { scopedURL?.stopAccessingSecurityScopedResource(); return }
                 let doc = TextDocument(file: opened.mapped, index: idx, url: url,
                                        encoding: opened.encoding, lineEnding: lineEnding,
-                                       contentStart: opened.contentStart, tempURL: opened.tempURL)
+                                       contentStart: opened.contentStart, tempURL: opened.tempURL,
+                                       scopedURL: scopedURL)
                 self.doc = doc
                 self.textView.setDocument(doc)
                 self.reflectDocument()

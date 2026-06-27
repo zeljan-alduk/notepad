@@ -38,18 +38,22 @@ final class TextDocument {
 
     /// Transcoded UTF-8 backing file to delete when this document closes.
     private let tempURL: URL?
+    /// Security-scoped URL whose access we release when this document closes.
+    private let scopedURL: URL?
 
     init(file: MappedFile, index: LineIndex, url: URL?,
          encoding: FileEncoding = .utf8,
          lineEnding: LineEndingInfo = .crlf,
          contentStart: Int = 0,
-         tempURL: URL? = nil) {
+         tempURL: URL? = nil,
+         scopedURL: URL? = nil) {
         self.file = file
         self.index = index
         self.fileURL = url
         self.encoding = encoding
         self.lineEnding = lineEnding
         self.tempURL = tempURL
+        self.scopedURL = scopedURL
         self.pieceTable = PieceTable(original: file, index: index, contentStart: contentStart)
 
         // We manage undo grouping ourselves so a run of typed characters folds
@@ -74,6 +78,7 @@ final class TextDocument {
 
     deinit {
         if let tempURL { try? FileManager.default.removeItem(at: tempURL) }
+        scopedURL?.stopAccessingSecurityScopedResource()
     }
 
     var byteCount: Int { pieceTable.byteCount }
