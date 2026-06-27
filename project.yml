@@ -1,0 +1,46 @@
+name: FlashPad
+options:
+  bundleIdPrefix: tech.aldo
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    PRODUCT_NAME: FlashPad
+    PRODUCT_BUNDLE_IDENTIFIER: tech.aldo.flashpad
+    CODE_SIGN_ENTITLEMENTS: Resources/FlashPad.entitlements
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+    # DEVELOPMENT_TEAM and signing are supplied by fastlane / Xcode at archive time.
+
+targets:
+  FlashPad:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/FlashPad
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleName: FlashPad
+        CFBundleDisplayName: FlashPad
+        CFBundleIconFile: AppIcon
+        LSMinimumSystemVersion: "13.0"
+        NSHighResolutionCapable: true
+        NSHumanReadableCopyright: "© 2026 Željan Alduk"
+        NSMainNibFile: ""
+        NSPrincipalClass: NSApplication
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Text Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.plain-text, public.text, public.data]
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""

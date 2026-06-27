@@ -10,8 +10,13 @@ enum AppFonts {
     static func registerBundledFonts() {
         guard !registered else { return }
         registered = true
-        let urls = (Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts")
-                    ?? Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil)) ?? []
+        // SwiftPM keeps the fonts in a "Fonts" subdirectory; the Xcode/App Store
+        // build flattens them to the resources root. Try both (an absent subdir
+        // returns [] rather than nil, so check emptiness, not just nil).
+        var urls = Bundle.appResources.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts") ?? []
+        if urls.isEmpty {
+            urls = Bundle.appResources.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? []
+        }
         guard !urls.isEmpty else { return }
         CTFontManagerRegisterFontURLs(urls as CFArray, .process, true, nil)
     }

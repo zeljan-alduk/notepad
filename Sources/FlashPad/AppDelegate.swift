@@ -15,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set the Dock icon programmatically so it shows in every run mode
         // (bare binary, swift run, or .app) regardless of Launch Services cache.
-        if let url = Bundle.module.url(forResource: "AppIcon", withExtension: "icns"),
+        if let url = Bundle.appResources.url(forResource: "AppIcon", withExtension: "icns"),
            let image = NSImage(contentsOf: url) {
             NSApp.applicationIconImage = image
         }
