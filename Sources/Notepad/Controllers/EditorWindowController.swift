@@ -170,13 +170,14 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
 
     private func layoutContent(in bounds: NSRect) {
         // Flipped container: y grows downward, menu on top, status on bottom.
+        let statusH = statusBarVisible ? statusBarHeight : 0
         menuBar.frame = NSRect(x: 0, y: 0, width: bounds.width, height: menuBarHeight)
-        statusBar.frame = NSRect(x: 0, y: bounds.height - statusBarHeight,
+        statusBar.frame = NSRect(x: 0, y: bounds.height - statusH,
                                  width: bounds.width, height: statusBarHeight)
         scrollView.frame = NSRect(
             x: 0, y: menuBarHeight,
             width: bounds.width,
-            height: bounds.height - menuBarHeight - statusBarHeight)
+            height: bounds.height - menuBarHeight - statusH)
     }
 
     // MARK: - File opening
@@ -205,6 +206,26 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
                 self.coordinator?.noteRecent(url)
             }
         }
+    }
+
+    // MARK: - Quick wins
+
+    @objc func insertTimeDate(_ sender: Any?) {
+        let now = Date()
+        let time = DateFormatter(); time.timeStyle = .short; time.dateStyle = .none
+        let date = DateFormatter(); date.dateStyle = .short; date.timeStyle = .none
+        textView.insertAtCaret("\(time.string(from: now)) \(date.string(from: now))")
+    }
+
+    private var statusBarVisible = true
+    @objc func toggleStatusBar(_ sender: Any?) {
+        statusBarVisible.toggle()
+        statusBar.isHidden = !statusBarVisible
+        if let content = window?.contentView { layoutContent(in: content.bounds) }
+    }
+
+    @objc func runPageLayout(_ sender: Any?) {
+        NSApp.runPageLayout(sender)
     }
 
     @objc func printDocument(_ sender: Any?) {
@@ -291,6 +312,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             add("Save", #selector(saveDocument(_:)), "s", target: self)
             add("Save As...", #selector(saveDocumentAs(_:)), target: self)
             menu.addItem(.separator())
+            add("Page Setup...", #selector(runPageLayout(_:)), target: self)
             add("Print...", #selector(printDocument(_:)), "p", target: self)
             menu.addItem(.separator())
             add("Exit", #selector(NSApplication.terminate(_:)), target: NSApp)
@@ -309,6 +331,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             add("Go To...", #selector(performGoToLine(_:)), "l", target: self)
             menu.addItem(.separator())
             add("Select All", #selector(NSText.selectAll(_:)), "a")
+            add("Time/Date", #selector(insertTimeDate(_:)), target: self)
         case "Format":
             let wrap = menu.addItem(withTitle: "Word Wrap", action: #selector(toggleWordWrap(_:)), keyEquivalent: "")
             wrap.target = self
@@ -318,6 +341,10 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             add("Zoom In", #selector(TextView.zoomIn(_:)), "+")
             add("Zoom Out", #selector(TextView.zoomOut(_:)), "-")
             add("Restore Default Zoom", #selector(TextView.resetZoom(_:)), "0")
+            menu.addItem(.separator())
+            let sb = menu.addItem(withTitle: "Status Bar", action: #selector(toggleStatusBar(_:)), keyEquivalent: "")
+            sb.target = self
+            sb.state = statusBarVisible ? .on : .off
         case "Help":
             add("About Notepad", #selector(AppDelegate.showAbout(_:)), target: coordinator)
         default:

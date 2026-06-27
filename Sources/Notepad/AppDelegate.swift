@@ -181,6 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let saveAs = fileMenu.addItem(withTitle: "Save As…", action: #selector(EditorWindowController.saveDocumentAs(_:)), keyEquivalent: "s")
         saveAs.keyEquivalentModifierMask = [.command, .shift]
         fileMenu.addItem(.separator())
+        fileMenu.addItem(withTitle: "Page Setup…", action: #selector(EditorWindowController.runPageLayout(_:)), keyEquivalent: "")
         fileMenu.addItem(withTitle: "Print…", action: #selector(EditorWindowController.printDocument(_:)), keyEquivalent: "p")
         fileItem.submenu = fileMenu
 
@@ -204,6 +205,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let replace = editMenu.addItem(withTitle: "Replace…", action: #selector(EditorWindowController.performReplacePanel(_:)), keyEquivalent: "f")
         replace.keyEquivalentModifierMask = [.command, .option]
         editMenu.addItem(withTitle: "Go to Line…", action: #selector(EditorWindowController.performGoToLine(_:)), keyEquivalent: "l")
+        editMenu.addItem(.separator())
+        let f5 = String(UnicodeScalar(UInt16(NSF5FunctionKey))!)
+        let timeDate = editMenu.addItem(withTitle: "Time/Date",
+                                        action: #selector(EditorWindowController.insertTimeDate(_:)), keyEquivalent: f5)
+        timeDate.keyEquivalentModifierMask = NSEvent.ModifierFlags.function
         editItem.submenu = editMenu
 
         let formatItem = NSMenuItem(); mainMenu.addItem(formatItem)
@@ -217,6 +223,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(withTitle: "Zoom In", action: #selector(TextView.zoomIn(_:)), keyEquivalent: "+")
         viewMenu.addItem(withTitle: "Zoom Out", action: #selector(TextView.zoomOut(_:)), keyEquivalent: "-")
         viewMenu.addItem(withTitle: "Restore Default Zoom", action: #selector(TextView.resetZoom(_:)), keyEquivalent: "0")
+        viewMenu.addItem(.separator())
+        viewMenu.addItem(withTitle: "Status Bar", action: #selector(EditorWindowController.toggleStatusBar(_:)), keyEquivalent: "")
         viewItem.submenu = viewMenu
 
         NSApp.mainMenu = mainMenu

@@ -11,12 +11,12 @@ final class StatusBar: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.backgroundColor = NSColor(white: 0.95, alpha: 1).cgColor
+        updateBackground()
 
         let chromeFont = AppFonts.ui(12)
         for field in [position, zoom, lineEnding, encoding] {
             field.font = chromeFont
-            field.textColor = NSColor(white: 0.2, alpha: 1)
+            field.textColor = .secondaryLabelColor
             field.backgroundColor = .clear
             field.isBordered = false
             addSubview(field)
@@ -25,9 +25,21 @@ final class StatusBar: NSView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    private func updateBackground() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateBackground()
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        NSColor(white: 0.82, alpha: 1).setStroke()
+        NSColor.separatorColor.setStroke()
         let line = NSBezierPath()
         line.move(to: NSPoint(x: 0, y: bounds.maxY - 0.5))
         line.line(to: NSPoint(x: bounds.maxX, y: bounds.maxY - 0.5))

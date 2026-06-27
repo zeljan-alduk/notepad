@@ -13,7 +13,7 @@ final class WinMenuBar: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.backgroundColor = NSColor.white.cgColor
+        updateBackground()
 
         let chromeFont = AppFonts.ui(13)
 
@@ -23,7 +23,7 @@ final class WinMenuBar: NSView {
             b.isBordered = false
             b.bezelStyle = .regularSquare
             b.font = chromeFont
-            b.contentTintColor = .black
+            b.contentTintColor = .labelColor
             let width = (title as NSString).size(withAttributes: [.font: chromeFont]).width + 18
             b.frame = NSRect(x: x, y: 0, width: width, height: 24)
             b.autoresizingMask = [.maxXMargin]
@@ -35,11 +35,23 @@ final class WinMenuBar: NSView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    private func updateBackground() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateBackground()
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.white.setFill()
+        NSColor.windowBackgroundColor.setFill()
         dirtyRect.fill()
         // Thin separator under the menu bar, like Win10.
-        NSColor(white: 0.85, alpha: 1).setStroke()
+        NSColor.separatorColor.setStroke()
         let line = NSBezierPath()
         line.move(to: NSPoint(x: 0, y: bounds.maxY - 0.5))
         line.line(to: NSPoint(x: bounds.maxX, y: bounds.maxY - 0.5))

@@ -22,7 +22,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
     private var fontIsFixedPitch = true
     private let longLineThreshold = 4000
     private let leftPadding: CGFloat = 4
-    private let textColor = NSColor.black
+    private var textColor: NSColor { .textColor }   // adapts to light/dark
 
     var currentBaseFont: NSFont { baseFont }
     var onZoom: ((Int) -> Void)?
@@ -65,11 +65,23 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         self.lineHeight = ceil(f.ascender - f.descender + f.leading) + 2
         super.init(frame: .zero)
         wantsLayer = true
-        layer?.backgroundColor = NSColor.white.cgColor
         document.delegate = self
         registerForDraggedTypes([.fileURL])
         updateFontMetrics()
+        updateBackgroundColor()
         updateFrameSize()
+    }
+
+    private func updateBackgroundColor() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateBackgroundColor()
+        needsDisplay = true
     }
 
     private func updateFontMetrics() {
@@ -206,7 +218,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
     // MARK: - Drawing
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.white.setFill()
+        NSColor.textBackgroundColor.setFill()
         dirtyRect.fill()
 
         let total = rowCount()
@@ -270,7 +282,7 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         guard rowCount() > 0 else { return }
         let x = xForOffset(head, inRow: i)
         let y = CGFloat(i) * lineHeight
-        NSColor.black.setFill()
+        textColor.setFill()
         NSRect(x: x, y: y + 1, width: 1, height: lineHeight - 2).fill()
     }
 
@@ -414,6 +426,9 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
         document.replace(selLow..<selHigh, with: text, coalesce: coalesce)
     }
 
+    /// Inserts text at the caret (replacing any selection). Used by Time/Date.
+    func insertAtCaret(_ text: String) { replaceSelection(with: text) }
+
     func document(_ doc: TextDocument, didEditPlacingCaretAt caret: Int) {
         desiredX = nil
         anchor = caret; head = caret
@@ -484,6 +499,29 @@ final class TextView: NSView, NSTextInputClient, TextDocumentDelegate, NSUserInt
     }
 
     override func keyDown(with event: NSEvent) { interpretKeyEvents([event]) }
+
+    /// Windows-style Ctrl shortcuts, in addition to the Cmd menu equivalents.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags == .control, let ch = event.charactersIgnoringModifiers?.lowercased() {
+            let map: [String: Selector] = [
+                "z": #selector(undo(_:)), "y": #selector(redo(_:)),
+                "x": #selector(cut(_:)), "c": #selector(copy(_:)), "v": #selector(paste(_:)),
+                "a": #selector(selectAll(_:)),
+                "=": #selector(zoomIn(_:)), "+": #selector(zoomIn(_:)),
+                "-": #selector(zoomOut(_:)), "0": #selector(resetZoom(_:)),
+                "f": #selector(EditorWindowController.performFindPanel(_:)),
+                "h": #selector(EditorWindowController.performReplacePanel(_:)),
+                "g": #selector(EditorWindowController.performGoToLine(_:)),
+                "s": #selector(EditorWindowController.saveDocument(_:)),
+                "p": #selector(EditorWindowController.printDocument(_:)),
+                "o": #selector(AppDelegate.openDocument(_:)),
+                "n": #selector(AppDelegate.newDocument(_:)),
+            ]
+            if let sel = map[ch], NSApp.sendAction(sel, to: nil, from: self) { return true }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {}
     func unmarkText() {}
