@@ -4,14 +4,15 @@ import AppKit
 /// On Windows the menu lives inside the window (not a global bar), which is the
 /// single most recognizable part of the FlashPad look.
 final class WinMenuBar: NSView {
-    private let titles = ["File", "Edit", "Format", "View", "Help"]
+    private let titles: [String]
     private var buttons: [NSButton] = []
 
     /// Builds the dropdown for a given top-level title. Supplied by the controller.
     var menuProvider: ((String) -> NSMenu)?
 
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
+    init(titles: [String] = ["File", "Edit", "Format", "View", "Help"]) {
+        self.titles = titles
+        super.init(frame: .zero)
         wantsLayer = true
         updateBackground()
 

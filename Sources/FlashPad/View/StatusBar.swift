@@ -68,6 +68,12 @@ final class StatusBar: NSView {
         needsLayout = true
     }
 
+    /// Free-form position text (the hex editor shows offsets, not line/column).
+    func setPositionText(_ text: String) {
+        position.stringValue = text
+        needsLayout = true
+    }
+
     func setEncoding(_ text: String) { encoding.stringValue = text; needsLayout = true }
     func setLineEnding(_ text: String) { lineEnding.stringValue = text; needsLayout = true }
     func setZoom(_ percent: Int) { zoom.stringValue = "\(percent)%"; needsLayout = true }

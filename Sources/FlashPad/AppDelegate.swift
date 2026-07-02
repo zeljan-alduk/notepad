@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// One controller per open window. Each owns its own document, so windows
     /// share only the AppKit frameworks — a new window costs a few MB + its file.
     private var controllers: [EditorWindowController] = []
+    private var hexControllers: [HexWindowController] = []
 
     private lazy var aboutController = AboutWindowController()
     private let openRecentMenu = NSMenu(title: "Open Recent")
@@ -21,12 +22,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         installGlobalMenu()
 
-        let first = newWindow()
+        newWindow()
 
-        // Open a file passed on the command line, if any.
+        // Open a file passed on the command line, if any. Routed through
+        // `open(url:)` so binaries get the hex editor; text files land in the
+        // just-created window, which is still the pristine front one.
         let args = CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("-") }
         if let path = args.first {
-            first.open(url: URL(fileURLWithPath: path))
+            open(url: URL(fileURLWithPath: path))
         }
 
         NSApp.activate(ignoringOtherApps: true)
@@ -74,11 +77,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func open(url: URL, scopedURL: URL? = nil) {
+        // Binary files (NUL bytes in the head) get the hex editor; the text
+        // path would mangle them through the ANSI transcode.
+        if let mapped = MappedFile(url: url), looksBinary(mapped) {
+            let controller = HexWindowController(file: mapped, url: url, scopedURL: scopedURL)
+            controller.coordinator = self
+            hexControllers.append(controller)
+            if hexControllers.count + controllers.count > 1 {
+                controller.window?.cascadeTopLeft(from: NSPoint(x: 40, y: 40))
+            }
+            controller.showWindow(nil)
+            controller.window?.makeKeyAndOrderFront(nil)
+            noteRecent(url)
+            return
+        }
         if let front = frontController(), front.isPristine {
             front.open(url: url, scopedURL: scopedURL)
         } else {
             newWindow().open(url: url, scopedURL: scopedURL)
         }
+    }
+
+    func hexControllerDidClose(_ controller: HexWindowController) {
+        hexControllers.removeAll { $0 === controller }
     }
 
     private func frontController() -> EditorWindowController? {

@@ -79,6 +79,18 @@ func prepareForReading(_ url: URL) -> OpenedFile? {
     return OpenedFile(mapped: raw, encoding: encoding, contentStart: contentStart, tempURL: nil)
 }
 
+/// NUL bytes in the head mean this isn't text in any encoding we edit as text
+/// (UTF-16 announces itself with a BOM, checked first), so it opens in the hex
+/// editor instead of being mangled through the ANSI path.
+func looksBinary(_ file: MappedFile) -> Bool {
+    let n = file.count
+    guard n > 0 else { return false }
+    if n >= 2, file.byte(at: 0) == 0xFF, file.byte(at: 1) == 0xFE { return false }
+    if n >= 2, file.byte(at: 0) == 0xFE, file.byte(at: 1) == 0xFF { return false }
+    let sampleLen = min(n, 1 << 16)
+    return memchr(file.rawBase, 0x00, sampleLen) != nil
+}
+
 /// BOM sniffing, then a UTF-8 validity check on a 64 KB sample (invalid ⇒ ANSI).
 func detectEncoding(_ file: MappedFile) -> FileEncoding {
     let n = file.count
