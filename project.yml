@@ -30,6 +30,10 @@ targets:
       properties:
         CFBundleName: FlashPad
         CFBundleDisplayName: FlashPad
+        # xcodegen writes literal 1.0/1 defaults unless these reference the
+        # build settings, and deliver then targets the wrong store version.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleIconFile: AppIcon
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "13.0"
