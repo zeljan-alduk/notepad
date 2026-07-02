@@ -17,6 +17,11 @@ BUILT FOR REAL FILES
 • Detects and preserves Windows (CRLF), Unix (LF), and classic Mac (CR) line endings.
 • Choose the encoding when you save.
 
+HEX EDITOR FOR BINARY FILES
+• Binary files open in a built-in hex editor: offset gutter, hex bytes, ASCII — fast at any size.
+• Overwrite, insert, and delete bytes with full undo.
+• Images get a live preview with pixel-level zoom, per-pixel RGBA editing, and full metadata (EXIF and more).
+
 FAMILIAR & CLEAN
 • Clean, classic editor layout with an in-window menu bar and a status bar showing line/column, zoom, line ending, and encoding.
 • Multiple windows, Recent Files, drag-and-drop to open, and printing.

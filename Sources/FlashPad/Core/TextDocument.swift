@@ -142,6 +142,12 @@ final class TextDocument {
         undoManager.registerUndo(withTarget: self) { doc in
             doc.replace(newRange, with: removed)
         }
+        // A fresh edit after undoing past the save point makes the saved state
+        // unreachable; poison the saved counter so isModified can never lie
+        // (type A, save, undo, type B would otherwise read as clean).
+        if !undoManager.isUndoing, !undoManager.isRedoing, changeCount < savedChangeCount {
+            savedChangeCount = Int.min
+        }
         changeCount += undoManager.isUndoing ? -1 : 1
         delegate?.document(self, didEditPlacingCaretAt: newRange.upperBound)
     }
@@ -150,12 +156,19 @@ final class TextDocument {
 
     enum SaveError: Error { case cannotCreate, writeFailed, renameFailed }
 
-    /// Writes the document to `url` in `encoding` via a sibling temp file + atomic
-    /// `rename`. UTF-8/UTF-8-BOM stream from the piece table (low memory, any
-    /// size); UTF-16/ANSI transcode the whole document (rare, typically small).
+    /// Writes the document to `url` atomically via a temp file in the system
+    /// replacement directory + `replaceItemAt`. A sibling temp file would be
+    /// denied under the App Sandbox — the powerbox grant covers only the chosen
+    /// file, so the shipped build could never save. UTF-8/UTF-8-BOM stream from
+    /// the piece table (low memory, any size); UTF-16/ANSI transcode the whole
+    /// document (rare, typically small).
     func save(to url: URL, as encoding: FileEncoding) throws {
-        let dir = url.deletingLastPathComponent()
-        let tmp = dir.appendingPathComponent(".\(url.lastPathComponent).np-\(getpid())-tmp")
+        let fm = FileManager.default
+        guard let dir = try? fm.url(for: .itemReplacementDirectory, in: .userDomainMask,
+                                    appropriateFor: url, create: true) else {
+            throw SaveError.cannotCreate
+        }
+        let tmp = dir.appendingPathComponent(url.lastPathComponent)
 
         let fd = open(tmp.path, O_WRONLY | O_CREAT | O_TRUNC, 0o644)
         guard fd >= 0 else { throw SaveError.cannotCreate }
@@ -179,7 +192,18 @@ final class TextDocument {
         fsync(fd)
         close(fd)
         guard ok else { unlink(tmp.path); throw SaveError.writeFailed }
-        guard rename(tmp.path, url.path) == 0 else { unlink(tmp.path); throw SaveError.renameFailed }
+        do {
+            // Swapping directory entries keeps the old inode alive under our
+            // mmap, so the piece table's original-file reads stay valid.
+            if fm.fileExists(atPath: url.path) {
+                _ = try fm.replaceItemAt(url, withItemAt: tmp)
+            } else {
+                try fm.moveItem(at: tmp, to: url)
+            }
+        } catch {
+            try? fm.removeItem(at: tmp)
+            throw SaveError.renameFailed
+        }
 
         fileURL = url
         self.encoding = encoding

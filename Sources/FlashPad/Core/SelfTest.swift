@@ -212,6 +212,45 @@ enum SelfTest {
             print("FAIL [hex] mmap failed")
         }
 
+        // --- text document save: the sandbox-safe replaceItemAt path ---
+        let saveTmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("txt-selftest-\(getpid()).txt")
+        try! Data("hello world\n".utf8).write(to: saveTmp)
+        defer { try? FileManager.default.removeItem(at: saveTmp) }
+        if let opened = prepareForReading(saveTmp) {
+            let saveIndex = LineIndex(file: opened.mapped)
+            saveIndex.buildSynchronously()
+            let doc = TextDocument(file: opened.mapped, index: saveIndex, url: saveTmp,
+                                   encoding: opened.encoding,
+                                   lineEnding: LineEndingInfo(newline: "\n", label: "Unix (LF)"),
+                                   contentStart: opened.contentStart)
+            doc.replace(0..<0, with: "EDITED ")
+            do {
+                try doc.save(to: saveTmp, as: .utf8)
+                let back = (try? String(contentsOf: saveTmp, encoding: .utf8)) ?? ""
+                if back != "EDITED hello world\n" {
+                    failures += 1
+                    print("FAIL [save] round-trip mismatch: \(debug(back))")
+                }
+                if doc.isModified { failures += 1; print("FAIL [save] still modified after save") }
+            } catch {
+                failures += 1
+                print("FAIL [save] threw \(error)")
+            }
+            // Dirty-flag poison: type, save, undo, type — must read modified.
+            doc.replace(0..<0, with: "A")
+            try? doc.save(to: saveTmp, as: .utf8)
+            doc.undoManager.undo()
+            doc.replace(0..<0, with: "B")
+            if !doc.isModified {
+                failures += 1
+                print("FAIL [save] undo-past-save then edit reads clean")
+            }
+        } else {
+            failures += 1
+            print("FAIL [save] prepareForReading failed")
+        }
+
         if failures == 0 {
             print("SELFTEST PASS — content + line geometry + search + hex overlay verified over random edits")
             exit(0)

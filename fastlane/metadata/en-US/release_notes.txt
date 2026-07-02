@@ -1,1 +1,11 @@
-First release.
+NEW: Hex editor for binary files
+• Binary files now open in a full hex editor — offset gutter, hex bytes, and ASCII, smooth even on huge files.
+• Overwrite or insert bytes (⌘I toggles Insert mode), delete bytes, undo everything.
+• Image files get a live preview panel: zoom to individual pixels, inspect and edit RGBA values, and apply them back to the file bytes.
+• Click a pixel to jump to its bytes — or click a byte to jump to its pixel (uncompressed BMP).
+• Full image metadata: dimensions, color profile, EXIF, and more.
+
+FIXES
+• Saving now works reliably in the sandboxed App Store build.
+• Quitting with unsaved changes now asks before discarding them.
+• The unsaved-changes indicator is now always accurate after undo.

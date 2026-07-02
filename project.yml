@@ -7,8 +7,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "2"
     SWIFT_VERSION: "5.0"
     PRODUCT_NAME: FlashPad
     PRODUCT_BUNDLE_IDENTIFIER: tech.aldo.flashpad
@@ -34,6 +34,9 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "13.0"
         NSHighResolutionCapable: true
+        # Every window is independent; also allow whole extra app instances
+        # (`open -n -a FlashPad`), Windows-Notepad style.
+        LSMultipleInstancesProhibited: false
         NSHumanReadableCopyright: "© 2026 Željan Alduk"
         NSMainNibFile: ""
         NSPrincipalClass: NSApplication

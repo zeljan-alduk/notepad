@@ -65,6 +65,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         newWindow()
     }
 
+    /// Dock icon menu: spawn another independent window without touching an
+    /// existing one.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        let item = menu.addItem(withTitle: "New Window",
+                                action: #selector(newDocument(_:)), keyEquivalent: "")
+        item.target = self
+        return menu
+    }
+
+    /// Clicking the Dock icon when every window is closed opens a fresh one.
+    func applicationShouldHandleReopen(_ sender: NSApplication,
+                                       hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { newWindow() }
+        return true
+    }
+
     /// File ▸ Open / ⌘O — reuses a pristine front window, else opens a new one.
     @objc func openDocument(_ sender: Any?) {
         let panel = NSOpenPanel()
@@ -180,6 +197,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    /// Quit must ask about unsaved changes: the per-window save prompt in
+    /// `windowShouldClose` only runs for user-initiated closes, and the default
+    /// terminate path would silently discard every dirty buffer.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        for controller in controllers {
+            guard let window = controller.window else { continue }
+            window.makeKeyAndOrderFront(nil)
+            if !controller.windowShouldClose(window) { return .terminateCancel }
+        }
+        for controller in hexControllers {
+            guard let window = controller.window else { continue }
+            window.makeKeyAndOrderFront(nil)
+            if !controller.windowShouldClose(window) { return .terminateCancel }
+        }
+        return .terminateNow
     }
 
     /// Minimal macOS global menu — only what the OS needs (Quit/Hide). The
